@@ -22,7 +22,26 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(catch2)
 
-add_executable(test_csv tests/test_csv_loader.cpp)
+FetchContent_Declare(
+  fast_cpp_csv_parser
+  GIT_REPOSITORY https://github.com/ben-strasser/fast-cpp-csv-parser.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(fast_cpp_csv_parser)
+
+target_include_directories(data_loader PUBLIC ${fast_cpp_csv_parser_SOURCE_DIR})
+
+FetchContent_Declare(
+  spdlog
+  GIT_REPOSITORY https://github.com/gabime/spdlog.git
+  GIT_TAG v1.11.0
+)
+FetchContent_MakeAvailable(spdlog)
+
+target_link_libraries(data_loader PUBLIC spdlog::spdlog)
+
+
+add_executable(test_csv tests/test_csv_loader.cpp tests/test_csv_stream.cpp)
 target_link_libraries(test_csv PRIVATE data_loader Catch2::Catch2)
 target_include_directories(test_csv PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
