@@ -1,13 +1,19 @@
-# FastQuantBacktester (minimal)
+# FastQuantBacktester
 
-This workspace contains the initial CSV data loader (F1) implementation.
+This repo now contains:
 
-Files added:
-- `src/DataLoader/Candle.h` — Candle struct (ISO8601 timestamp + OHLCV + optional symbol).
-- `src/DataLoader/CSVDataLoader.h/.cpp` — CSV loader, lenient parsing by default.
-- `examples/sample_prices.csv` — example CSV with 3 valid rows and 1 malformed row.
-- `tests/test_csv_loader.cpp` — Catch2 test that verifies parsing behavior.
-- `CMakeLists.txt` — minimal build to compile the loader and run tests via Catch2 (FetchContent).
+- **F1 – CSV Data Loader** with ISO8601 + epoch (sec / ms) timestamps, lenient/strict modes, streaming API, and perf benchmark.
+- **F2 – Strategy & Engine skeleton** including `Strategy` base class, a `MovingAverageStrategy`, and a `BacktestEngine` that streams candles, executes orders, and records trades.
+- **Positions / PnL module** providing a `Portfolio` that tracks cash, positions, and realized/unrealized PnL. `BacktestEngine::run` returns a `BacktestResult` containing trades + portfolio snapshot.
+
+Reference files:
+- `src/DataLoader/Candle.h`
+- `src/DataLoader/CSVDataLoader.{h,cpp}`
+- `src/Strategy/Strategy.h`, `src/Strategy/MovingAverageStrategy.{h,cpp}`
+- `src/Model/Order.h`, `src/Model/Trade.h`, `src/Model/Portfolio.{h,cpp}`
+- `src/BacktestEngine/BacktestEngine.{h,cpp}`
+- Tests under `tests/` (Catch2) and sample data in `examples/`
+- `CMakeLists.txt` + `.github/workflows/ci.yml`
 
 Build & test (WSL / Linux):
 
@@ -35,10 +41,11 @@ CSV format (expected canonical columns):
 API summary:
 
 - `CSVDataLoader::load(path, cfg)` — loads all candles into a std::vector<Candle>.
-- `CSVDataLoader::stream(path, callback, cfg)` — streams candles and calls your callback for each one (supports early-stop).
+- `CSVDataLoader::stream(path, callback, cfg)` — streams candles and calls your callback for each one (supports early-stop). Timestamps accept ISO8601 or numeric epoch (sec/ms).
 - `Strategy` — abstract base class for strategies (onStart/onData/onFinish). Use `setOrderSink()` to enable order submission.
 - `MovingAverageStrategy` — example SMA crossover strategy that emits orders on crossovers.
-- `BacktestEngine::run(path, cfg, strategy, outTrades)` — runs a backtest by streaming candles into the strategy and collects executed `Trade`s.
+- `BacktestEngine::run(path, cfg, strategy, initialCapital)` — returns a `BacktestResult { candlesProcessed, trades, portfolio }`.
+- `Portfolio` — maintains cash, signed positions, avg price, realized & unrealized PnL. Automatically updated by the engine when trades execute.
 
 Environment flags for tests & perf
 --------------------------------
@@ -60,11 +67,12 @@ ctest --output-on-failure -V
 Next steps and notes
 --------------------
 
-- The current execution model in `BacktestEngine` is immediate: `Order`s submitted by strategies are converted to `Trade`s and executed at the order price. This is simple and deterministic; later iterations should add more realistic fills (next-open fills, slippage, fees, partial fills).
-- F2 work (Strategy + BacktestEngine improvements) has been started: see `src/Strategy` and `src/BacktestEngine` for the scaffold and an example `MovingAverageStrategy`.
+- The current execution model in `BacktestEngine` is immediate: `Order`s submitted by strategies are converted to `Trade`s and executed at the order price. This keeps things deterministic and makes it easy to validate the Strategy/Portfolio pipeline. Upcoming improvements: model fills at next open/high/low, add slippage/fees, and support order types.
+- Reporting (JSON/CSV metrics), multithreaded backtests, CLI/config plumbing, and a Qt or web UI are the next roadmap milestones.
 
-If you'd like, I can open a small PR that:
-- Adds epoch-ms timestamp parsing tests
-- Exposes `strict` config via a CLI helper
-- Adds position/account P&L tracking (positions and trades integration)
+Want help next?
+- wire strict-mode/config flags into a CLI or JSON config loader
+- add JSON/CSV reporting of portfolio metrics (profit, drawdown, win-rate, trade log)
+- build a simple Qt or web dashboard that consumes `BacktestResult`
+- extend the perf benchmark (1M+ rows) and publish results
 

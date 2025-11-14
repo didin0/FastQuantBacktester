@@ -41,8 +41,28 @@ FetchContent_MakeAvailable(spdlog)
 target_link_libraries(data_loader PUBLIC spdlog::spdlog)
 
 
-add_executable(test_csv tests/test_csv_loader.cpp tests/test_csv_stream.cpp)
-target_link_libraries(test_csv PRIVATE data_loader Catch2::Catch2)
+# Engine library (Strategy + BacktestEngine)
+add_library(engine
+    src/BacktestEngine/BacktestEngine.cpp
+  src/Strategy/MovingAverageStrategy.cpp
+  src/Model/Portfolio.cpp
+)
+target_include_directories(engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(engine PUBLIC data_loader)
+
+add_executable(test_csv
+  tests/test_csv_loader.cpp
+  tests/test_csv_stream.cpp
+  tests/test_csv_strict.cpp
+  tests/test_csv_earlystop.cpp
+  tests/test_csv_noheader.cpp
+  tests/bench_csv_perf.cpp
+  tests/test_moving_average.cpp
+  tests/test_engine_integration.cpp
+  tests/test_portfolio.cpp
+  tests/test_epoch_ms.cpp
+)
+target_link_libraries(test_csv PRIVATE data_loader engine Catch2::Catch2)
 target_include_directories(test_csv PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 enable_testing()

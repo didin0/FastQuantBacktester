@@ -30,6 +30,38 @@ inline bool parseISO8601ToTimePoint(const std::string& s, std::chrono::system_cl
     return true;
 }
 
+// Parse timestamp accepting either ISO8601 or epoch seconds / epoch milliseconds.
+inline bool parseTimestamp(const std::string& s, std::chrono::system_clock::time_point& out)
+{
+    // Try ISO8601 first
+    if (parseISO8601ToTimePoint(s, out)) return true;
+
+    // Try numeric epoch (seconds or milliseconds)
+    try {
+        // trim whitespace
+        size_t i = 0;
+        while (i < s.size() && isspace((unsigned char)s[i])) ++i;
+        size_t j = s.size();
+        while (j > i && isspace((unsigned char)s[j-1])) --j;
+        if (i >= j) return false;
+        std::string num = s.substr(i, j - i);
+
+        // allow negative? probably not for historical data, but stoll handles it
+        long long v = std::stoll(num);
+
+        // heuristic: values larger than 1e11 are milliseconds (around year 1973+)
+        if (std::llabs(v) > 100000000000LL) {
+            out = std::chrono::system_clock::time_point(std::chrono::milliseconds(v));
+        } else {
+            // treat as seconds
+            out = std::chrono::system_clock::from_time_t(static_cast<time_t>(v));
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
 
 class CSVDataLoader {
 public:
@@ -70,7 +102,7 @@ public:
 
             while (in.read_row(ts, open_s, high_s, low_s, close_s, volume_s, symbol)) {
                 Candle c;
-                if (!fastquant::parseISO8601ToTimePoint(ts, c.timestamp)) {
+                if (!fastquant::parseTimestamp(ts, c.timestamp)) {
                     if (cfg.strict) throw std::runtime_error("Invalid timestamp format: " + ts);
                     spdlog::warn("Skipping row (invalid timestamp): {}", ts);
                     continue;
@@ -104,7 +136,7 @@ public:
 
         while (in2.read_row(ts, open_s, high_s, low_s, close_s, volume_s)) {
             Candle c;
-            if (!fastquant::parseISO8601ToTimePoint(ts, c.timestamp)) {
+            if (!fastquant::parseTimestamp(ts, c.timestamp)) {
                 if (cfg.strict) throw std::runtime_error("Invalid timestamp format: " + ts);
                 spdlog::warn("Skipping row (invalid timestamp): {}", ts);
                 continue;
