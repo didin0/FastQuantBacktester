@@ -46,6 +46,7 @@ API summary:
 - `MovingAverageStrategy` — example SMA crossover strategy that emits orders on crossovers.
 - `BacktestEngine::run(path, cfg, strategy, initialCapital)` — returns a `BacktestResult { candlesProcessed, trades, portfolio }`.
 - `Portfolio` — maintains cash, signed positions, avg price, realized & unrealized PnL. Automatically updated by the engine when trades execute.
+- `Reporter` — builds performance summaries (P&L, drawdown, win/loss counts) and exports JSON / CSV files (summary + trade log + equity curve).
 
 Environment flags for tests & perf
 --------------------------------
@@ -68,7 +69,7 @@ Next steps and notes
 --------------------
 
 - The current execution model in `BacktestEngine` is immediate: `Order`s submitted by strategies are converted to `Trade`s and executed at the order price. This keeps things deterministic and makes it easy to validate the Strategy/Portfolio pipeline. Upcoming improvements: model fills at next open/high/low, add slippage/fees, and support order types.
-- Reporting (JSON/CSV metrics), multithreaded backtests, CLI/config plumbing, and a Qt or web UI are the next roadmap milestones.
+- Multithreaded backtests, CLI/config plumbing, and a Qt or web UI are the next roadmap milestones.
 
 Want help next?
 - wire strict-mode/config flags into a CLI or JSON config loader

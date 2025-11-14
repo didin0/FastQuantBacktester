@@ -8,6 +8,7 @@
 #include "../Model/Order.h"
 #include "../Model/Portfolio.h"
 #include <vector>
+#include <chrono>
 
 namespace fastquant {
 
@@ -15,6 +16,9 @@ struct BacktestResult {
     size_t candlesProcessed{0};
     std::vector<Trade> trades;
     Portfolio portfolio;
+    std::vector<double> equityCurve;
+    std::vector<std::chrono::system_clock::time_point> equityTimestamps;
+    double initialCapital{0.0};
 
     BacktestResult();
     explicit BacktestResult(double initialCapital);

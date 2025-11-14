@@ -2,8 +2,9 @@
 
 namespace fastquant {
 
-BacktestResult::BacktestResult() : portfolio(0.0) {}
-BacktestResult::BacktestResult(double initialCapital) : portfolio(initialCapital) {}
+BacktestResult::BacktestResult() : portfolio(0.0), initialCapital(0.0) {}
+BacktestResult::BacktestResult(double initialCapital)
+    : portfolio(initialCapital), initialCapital(initialCapital) {}
 
 BacktestResult BacktestEngine::run(const std::string& csvPath, CSVDataLoader::Config cfg, Strategy& strategy, double initialCapital) {
     CSVDataLoader loader;
@@ -42,12 +43,18 @@ BacktestResult BacktestEngine::run(const std::string& csvPath, CSVDataLoader::Co
         result.portfolio.markPrice(sym, c.close);
         strategy.onData(c);
         ++result.candlesProcessed;
+        result.equityTimestamps.push_back(c.timestamp);
+        result.equityCurve.push_back(result.portfolio.equity());
         return true; // continue
     }, cfg);
 
     strategy.onFinish();
     // detach sink
     strategy.setOrderSink(nullptr);
+    if (result.equityCurve.empty()) {
+        result.equityTimestamps.push_back(std::chrono::system_clock::now());
+        result.equityCurve.push_back(result.portfolio.equity());
+    }
     return result;
 }
 

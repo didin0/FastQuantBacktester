@@ -40,6 +40,13 @@ FetchContent_MakeAvailable(spdlog)
 
 target_link_libraries(data_loader PUBLIC spdlog::spdlog)
 
+FetchContent_Declare(
+  nlohmann_json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG v3.11.3
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
 
 # Engine library (Strategy + BacktestEngine)
 add_library(engine
@@ -49,6 +56,12 @@ add_library(engine
 )
 target_include_directories(engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(engine PUBLIC data_loader)
+
+add_library(reporter
+    src/Reporter/Reporter.cpp
+)
+target_include_directories(reporter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(reporter PUBLIC engine nlohmann_json::nlohmann_json)
 
 add_executable(test_csv
   tests/test_csv_loader.cpp
@@ -61,8 +74,9 @@ add_executable(test_csv
   tests/test_engine_integration.cpp
   tests/test_portfolio.cpp
   tests/test_epoch_ms.cpp
+  tests/test_reporter.cpp
 )
-target_link_libraries(test_csv PRIVATE data_loader engine Catch2::Catch2)
+target_link_libraries(test_csv PRIVATE data_loader engine reporter Catch2::Catch2)
 target_include_directories(test_csv PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 enable_testing()
