@@ -1,79 +1,48 @@
 # FastQuantBacktester
 
-This repo now contains:
+FastQuantBacktester is a modern C++20 playground for running trading strategy experiments quickly. It ships with a blazing-fast CSV loader (ISO8601 + epoch timestamps, lenient/strict parsing, streaming), a plug-in `Strategy` interface with a sample moving-average crossover, a deterministic `BacktestEngine` that converts strategy orders into trades and keeps a `Portfolio` (cash, positions, realized/unrealized PnL), and a `Reporter` that summarizes the run to JSON/CSV.
 
-- **F1 – CSV Data Loader** with ISO8601 + epoch (sec / ms) timestamps, lenient/strict modes, streaming API, and perf benchmark.
-- **F2 – Strategy & Engine skeleton** including `Strategy` base class, a `MovingAverageStrategy`, and a `BacktestEngine` that streams candles, executes orders, and records trades.
-- **Positions / PnL module** providing a `Portfolio` that tracks cash, positions, and realized/unrealized PnL. `BacktestEngine::run` returns a `BacktestResult` containing trades + portfolio snapshot.
+Everything is dependency-light (fast-cpp-csv-parser, spdlog, Catch2, nlohmann/json) and glued together through small modules you can re-use in other apps.
 
-Reference files:
-- `src/DataLoader/Candle.h`
-- `src/DataLoader/CSVDataLoader.{h,cpp}`
-- `src/Strategy/Strategy.h`, `src/Strategy/MovingAverageStrategy.{h,cpp}`
-- `src/Model/Order.h`, `src/Model/Trade.h`, `src/Model/Portfolio.{h,cpp}`
-- `src/BacktestEngine/BacktestEngine.{h,cpp}`
-- Tests under `tests/` (Catch2) and sample data in `examples/`
-- `CMakeLists.txt` + `.github/workflows/ci.yml`
-
-Build & test (WSL / Linux):
+## How to use it
 
 ```bash
-# create build
+# Configure + build (WSL/Linux)
 mkdir -p build && cd build
 cmake ..
 cmake --build . -- -j
+
+# Run the full Catch2 suite
 ctest --output-on-failure
+
+# Build the CLI runner (if not already built)
+cmake --build . --target fastquant_cli
+
+# Execute a backtest via JSON config
+./fastquant_cli ../examples/fastquant.config.json
 ```
 
-Quickstart — CSV loader and engine
-----------------------------------
+`examples/fastquant.config.json` points to `examples/sample_prices.csv` and defines:
 
-CSV format (expected canonical columns):
-
-- timestamp (ISO8601 UTC, e.g. 2025-11-10T00:00:00Z)
-- open (float)
-- high (float)
-- low (float)
-- close (float)
-- volume (float)
-- symbol (optional)
-
-API summary:
-
-- `CSVDataLoader::load(path, cfg)` — loads all candles into a std::vector<Candle>.
-- `CSVDataLoader::stream(path, callback, cfg)` — streams candles and calls your callback for each one (supports early-stop). Timestamps accept ISO8601 or numeric epoch (sec/ms).
-- `Strategy` — abstract base class for strategies (onStart/onData/onFinish). Use `setOrderSink()` to enable order submission.
-- `MovingAverageStrategy` — example SMA crossover strategy that emits orders on crossovers.
-- `BacktestEngine::run(path, cfg, strategy, initialCapital)` — returns a `BacktestResult { candlesProcessed, trades, portfolio }`.
-- `Portfolio` — maintains cash, signed positions, avg price, realized & unrealized PnL. Automatically updated by the engine when trades execute.
-- `Reporter` — builds performance summaries (P&L, drawdown, win/loss counts) and exports JSON / CSV files (summary + trade log + equity curve).
-
-Environment flags for tests & perf
---------------------------------
-
-- `ENABLE_PERF=1` — opt-in flag to enable the perf benchmark test (`tests/bench_csv_perf.cpp`). Disabled by default to keep CI fast.
-- `FQ_BENCH_ROWS` — when `ENABLE_PERF=1`, controls how many rows the perf generator will create (default 100000).
-
-Example: run local perf with 1M rows
-
-```bash
-export ENABLE_PERF=1
-export FQ_BENCH_ROWS=1000000
-mkdir -p build && cd build
-cmake ..
-cmake --build . -- -j
-ctest --output-on-failure -V
+```json
+{
+  "data": { "path": "examples/sample_prices.csv", "strict": false },
+  "strategy": { "type": "moving_average", "short_window": 5, "long_window": 20 },
+  "engine": { "initial_capital": 100000 },
+  "reporter": {
+    "json": "reports/latest/report.json",
+    "summary_csv": "reports/latest/summary.csv",
+    "trades_csv": "reports/latest/trades.csv",
+    "print_summary": true
+  }
+}
 ```
 
-Next steps and notes
---------------------
+When you run `fastquant_cli`:
 
-- The current execution model in `BacktestEngine` is immediate: `Order`s submitted by strategies are converted to `Trade`s and executed at the order price. This keeps things deterministic and makes it easy to validate the Strategy/Portfolio pipeline. Upcoming improvements: model fills at next open/high/low, add slippage/fees, and support order types.
-- Multithreaded backtests, CLI/config plumbing, and a Qt or web UI are the next roadmap milestones.
+1. The loader streams candles into the moving-average strategy.
+2. The engine executes signals immediately and updates the portfolio/equity curve.
+3. The reporter prints a concise summary (optional) and drops JSON/CSV artifacts to the paths defined in the config. Relative paths are resolved against the config file location.
 
-Want help next?
-- wire strict-mode/config flags into a CLI or JSON config loader
-- add JSON/CSV reporting of portfolio metrics (profit, drawdown, win-rate, trade log)
-- build a simple Qt or web dashboard that consumes `BacktestResult`
-- extend the perf benchmark (1M+ rows) and publish results
+That’s it—clone, build, tweak the config, and iterate on new strategies or reporters as needed.
 

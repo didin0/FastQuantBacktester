@@ -1,0 +1,21 @@
+{
+  "data": {
+    "path": "sample_prices.csv",
+    "has_header": true,
+    "strict": false
+  },
+  "strategy": {
+    "type": "moving_average",
+    "short_window": 5,
+    "long_window": 20
+  },
+  "engine": {
+    "initial_capital": 100000
+  },
+  "reporter": {
+    "json": "../reports/latest/report.json",
+    "summary_csv": "../reports/latest/summary.csv",
+    "trades_csv": "../reports/latest/trades.csv",
+    "print_summary": true
+  }
+}

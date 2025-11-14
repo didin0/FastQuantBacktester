@@ -63,6 +63,18 @@ add_library(reporter
 target_include_directories(reporter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(reporter PUBLIC engine nlohmann_json::nlohmann_json)
 
+add_library(app_runner
+    src/App/RunConfig.cpp
+)
+target_include_directories(app_runner PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(app_runner PUBLIC reporter nlohmann_json::nlohmann_json)
+
+add_executable(fastquant_cli
+    src/cli/main.cpp
+)
+target_include_directories(fastquant_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(fastquant_cli PRIVATE app_runner)
+
 add_executable(test_csv
   tests/test_csv_loader.cpp
   tests/test_csv_stream.cpp
@@ -75,8 +87,9 @@ add_executable(test_csv
   tests/test_portfolio.cpp
   tests/test_epoch_ms.cpp
   tests/test_reporter.cpp
+  tests/test_cli_config.cpp
 )
-target_link_libraries(test_csv PRIVATE data_loader engine reporter Catch2::Catch2)
+target_link_libraries(test_csv PRIVATE data_loader engine reporter app_runner Catch2::Catch2)
 target_include_directories(test_csv PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 enable_testing()
