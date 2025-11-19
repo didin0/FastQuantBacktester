@@ -39,9 +39,9 @@ mathematical complexity.
   ---------------------------------------------------------------------------
   ID      Feature              Description               Priority
   ------- -------------------- ------------------------- --------------------
-  F1      **CSV Data Loader**  Read and parse historical High
-                               price data.               
-
+  F1      **Data Loader**      Read and parse historical High
+                               price data (CSV or API).  
+  **Data Loader**      Read and parse historical price data (CSV or HTTP API). | High
   F2      **Strategy           Define and test multiple  High
           Management**         trading strategies.       
 
@@ -101,6 +101,7 @@ switch from CSV to API data without altering the engine).
   **CSV Parsing**   fast-cpp-csv-parser
   **JSON**          nlohmann/json
   **Logging**       spdlog
+  **HTTP**          libcurl
   **Testing**       Catch2 / GoogleTest
   **UI**            Qt6
   **Threads**       std::thread / std::async

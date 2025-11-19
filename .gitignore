@@ -35,6 +35,12 @@
 *.log
 *.tmp
 *.temp
+.env
+.env.local
+*.tar.gz
+
+# Local dependency sources
+/build/_deps/
 
 # OS
 .DS_Store

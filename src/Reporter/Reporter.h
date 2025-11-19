@@ -18,6 +18,10 @@ struct ReportSummary {
     size_t winningTrades{0};
     size_t losingTrades{0};
     double winRate{0.0};
+    double totalFees{0.0};
+    double totalSlippage{0.0};
+    size_t ordersFilled{0};
+    size_t ordersRejected{0};
 };
 
 class Reporter {

@@ -1,66 +1,15 @@
 #pragma once
 
 #include "Candle.h"
+#include "TimestampParser.h"
 #include <string>
 #include <vector>
 #include <functional>
 #include <type_traits>
 #include "csv.h"
 #include <spdlog/spdlog.h>
-#include <sstream>
-#include <iomanip>
 
 namespace fastquant {
-
-// Parse ISO8601 timestamp (YYYY-MM-DDTHH:MM:SSZ) to time_point.
-inline bool parseISO8601ToTimePoint(const std::string& s, std::chrono::system_clock::time_point& out)
-{
-    std::tm tm = {};
-    std::istringstream ss(s);
-    ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
-    if (ss.fail()) return false;
-
-#if defined(_WIN32)
-    time_t tt = _mkgmtime(&tm);
-#else
-    time_t tt = timegm(&tm);
-#endif
-    if (tt == -1) return false;
-    out = std::chrono::system_clock::from_time_t(tt);
-    return true;
-}
-
-// Parse timestamp accepting either ISO8601 or epoch seconds / epoch milliseconds.
-inline bool parseTimestamp(const std::string& s, std::chrono::system_clock::time_point& out)
-{
-    // Try ISO8601 first
-    if (parseISO8601ToTimePoint(s, out)) return true;
-
-    // Try numeric epoch (seconds or milliseconds)
-    try {
-        // trim whitespace
-        size_t i = 0;
-        while (i < s.size() && isspace((unsigned char)s[i])) ++i;
-        size_t j = s.size();
-        while (j > i && isspace((unsigned char)s[j-1])) --j;
-        if (i >= j) return false;
-        std::string num = s.substr(i, j - i);
-
-        // allow negative? probably not for historical data, but stoll handles it
-        long long v = std::stoll(num);
-
-        // heuristic: values larger than 1e11 are milliseconds (around year 1973+)
-        if (std::llabs(v) > 100000000000LL) {
-            out = std::chrono::system_clock::time_point(std::chrono::milliseconds(v));
-        } else {
-            // treat as seconds
-            out = std::chrono::system_clock::from_time_t(static_cast<time_t>(v));
-        }
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
 
 
 class CSVDataLoader {

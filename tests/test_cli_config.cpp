@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 #include "../src/App/RunConfig.h"
+#include "../src/App/EnvLoader.h"
 #include <filesystem>
 #include <fstream>
 #include <cstdlib>
@@ -57,6 +58,70 @@ void writeConfig(const std::filesystem::path& path) {
 })";
 }
 
+void writeApiConfig(const std::filesystem::path& path) {
+    std::ofstream ofs(path);
+    ofs << R"({
+  "data": {
+    "source": "api",
+    "endpoint": "https://example.com/api",
+    "symbol": "TEST",
+    "headers": {"X-API-KEY": "demo"},
+    "query": {"limit": "5"},
+    "data_field": "bars",
+    "fields": {
+      "timestamp": "ts",
+      "open": "o",
+      "high": "h",
+      "low": "l",
+      "close": "c",
+      "volume": "v",
+      "symbol": "ticker"
+    }
+  },
+  "strategy": {
+    "type": "moving_average",
+    "short_window": 2,
+    "long_window": 3
+  }
+})";
+}
+
+void writeMultiStrategyConfig(const std::filesystem::path& path) {
+    std::ofstream ofs(path);
+    ofs << R"({
+  "data": {
+    "path": "data.csv",
+    "has_header": true,
+    "strict": true
+  },
+  "strategies": [
+    {
+      "name": "sma_fast",
+      "type": "moving_average",
+      "short_window": 2,
+      "long_window": 3
+    },
+    {
+      "name": "breakout_20",
+      "type": "breakout",
+      "breakout_lookback": 20,
+      "breakout_buffer": 0.25,
+      "order_quantity": 10,
+      "allow_short": true
+    }
+  ],
+  "engine": {
+    "initial_capital": 50000
+  },
+  "reporter": {
+    "json": "reports/out.json",
+    "summary_csv": "reports/summary.csv",
+    "trades_csv": "reports/trades.csv",
+    "print_summary": false
+  }
+})";
+}
+
 } // namespace
 
 TEST_CASE("RunConfig drives CLI pipeline", "[cli][config]") {
@@ -90,4 +155,83 @@ TEST_CASE("RunConfig drives CLI pipeline", "[cli][config]") {
 
   std::error_code ec;
   std::filesystem::remove_all(tmp, ec);
+}
+
+TEST_CASE("Parallel strategy configs run and produce suffixed reports", "[cli][config][parallel]") {
+    auto tmp = makeTempDir();
+    auto csv = tmp / "data.csv";
+    auto cfgPath = tmp / "multi.json";
+    writeSampleCsv(csv);
+    writeMultiStrategyConfig(cfgPath);
+
+    auto cfg = fastquant::app::loadRunConfig(cfgPath.string());
+    REQUIRE(cfg.strategies.size() == 2);
+    REQUIRE(cfg.strategies[0].name == "sma_fast");
+    REQUIRE(cfg.strategies[1].name == "breakout_20");
+
+    auto runs = fastquant::app::executeBacktests(cfg);
+    REQUIRE(runs.size() == 2);
+
+    auto reports = fastquant::app::generateReports(cfg, runs);
+    REQUIRE(reports.size() == 2);
+
+    auto reportDir = tmp / "reports";
+  auto expectJson1 = std::filesystem::weakly_canonical(reportDir / "out_sma_fast_1.json");
+  auto expectJson2 = std::filesystem::weakly_canonical(reportDir / "out_breakout_20_2.json");
+    REQUIRE(reports[0].outputs.jsonPath);
+    REQUIRE(reports[1].outputs.jsonPath);
+    REQUIRE(std::filesystem::weakly_canonical(*reports[0].outputs.jsonPath) == expectJson1);
+    REQUIRE(std::filesystem::weakly_canonical(*reports[1].outputs.jsonPath) == expectJson2);
+    REQUIRE(std::filesystem::exists(expectJson1));
+    REQUIRE(std::filesystem::exists(expectJson2));
+
+    std::error_code ec;
+    std::filesystem::remove_all(tmp, ec);
+}
+
+TEST_CASE("RunConfig parses API data source", "[cli][config][api]") {
+  auto tmp = makeTempDir();
+  auto cfgPath = tmp / "api.json";
+  writeApiConfig(cfgPath);
+
+  auto cfg = fastquant::app::loadRunConfig(cfgPath.string());
+  REQUIRE(cfg.dataSource == fastquant::app::DataSourceKind::API);
+  REQUIRE(cfg.apiData);
+  REQUIRE(cfg.apiData->endpoint == "https://example.com/api");
+  REQUIRE(cfg.apiData->headers.size() == 1);
+  REQUIRE(cfg.apiData->query.size() == 1);
+  REQUIRE(cfg.apiData->dataField);
+
+  std::error_code ec;
+  std::filesystem::remove_all(tmp, ec);
+}
+
+TEST_CASE("Environment placeholders expand inside configs", "[cli][config][env]") {
+    auto tmp = makeTempDir();
+    auto envPath = tmp / ".env";
+    {
+        std::ofstream ofs(envPath);
+        ofs << "BINANCE_KEY=secret123";
+    }
+
+    auto cfgPath = tmp / "api_env.json";
+    std::ofstream ofs(cfgPath);
+    ofs << R"({
+  "data": {
+    "source": "api",
+    "endpoint": "https://example.com/api",
+    "headers": {"X-MBX-APIKEY": "${BINANCE_KEY}"},
+    "fields": {"timestamp": "ts", "open": "o", "high": "h", "low": "l", "close": "c", "volume": "v"}
+  }
+})";
+    ofs.close();
+
+    fastquant::app::loadEnvFile(envPath);
+    auto cfg = fastquant::app::loadRunConfig(cfgPath.string());
+    REQUIRE(cfg.apiData);
+    REQUIRE_FALSE(cfg.apiData->headers.empty());
+    REQUIRE(cfg.apiData->headers[0].second == "secret123");
+
+    std::error_code ec;
+    std::filesystem::remove_all(tmp, ec);
 }

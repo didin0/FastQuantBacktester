@@ -1,0 +1,39 @@
+{
+  "data": {
+    "source": "api",
+    "endpoint": "https://api.binance.com/api/v3/klines",
+    "symbol": "BTCUSDT",
+    "headers": {
+      "X-MBX-APIKEY": "${BINANCE_API_KEY}"
+    },
+    "query": {
+      "symbol": "BTCUSDT",
+      "interval": "1h",
+      "limit": "2000000"
+    },
+    "fields": {
+      "timestamp": "0",
+      "open": "1",
+      "high": "2",
+      "low": "3",
+      "close": "4",
+      "volume": "5",
+      "symbol": ""
+    }
+  },
+  "strategies": [
+    {
+      "name": "sma_fast",
+      "type": "moving_average",
+      "short_window": 5,
+      "long_window": 15
+    }
+  ],
+  "engine": {
+    "initial_capital": 25000,
+    "execution": {
+      "default_slippage_bps": 10,
+      "commission_per_share": 0.005
+    }
+  }
+}

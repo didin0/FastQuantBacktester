@@ -30,6 +30,10 @@ ReportSummary Reporter::summarize(const BacktestResult& result) const {
         ? ((summary.finalEquity / summary.initialCapital) - 1.0)
         : 0.0;
     summary.trades = result.trades.size();
+    summary.totalFees = result.totalFees;
+    summary.totalSlippage = result.totalSlippage;
+    summary.ordersFilled = result.ordersFilled;
+    summary.ordersRejected = result.ordersRejected;
 
     // compute drawdown from equity curve
     double peak = summary.initialCapital;
@@ -93,7 +97,11 @@ void Reporter::writeJson(const BacktestResult& result, const std::string& path) 
         {"trades", summary.trades},
         {"winning_trades", summary.winningTrades},
         {"losing_trades", summary.losingTrades},
-        {"win_rate", summary.winRate}
+        {"win_rate", summary.winRate},
+        {"total_fees", summary.totalFees},
+        {"total_slippage", summary.totalSlippage},
+        {"orders_filled", summary.ordersFilled},
+        {"orders_rejected", summary.ordersRejected}
     };
 
     nlohmann::json tradesJson = nlohmann::json::array();
@@ -102,10 +110,13 @@ void Reporter::writeJson(const BacktestResult& result, const std::string& path) 
             {"id", tr.id},
             {"order_id", tr.orderId},
             {"side", tr.side == Side::Buy ? "BUY" : "SELL"},
+            {"type", tr.type == OrderType::Market ? "MARKET" : "LIMIT"},
             {"price", tr.price},
             {"qty", tr.qty},
             {"symbol", tr.symbol},
-            {"timestamp", formatTimestamp(tr.timestamp)}
+            {"timestamp", formatTimestamp(tr.timestamp)},
+            {"fee", tr.fee},
+            {"slippage_bps", tr.slippageBps}
         });
     }
     j["trades"] = tradesJson;
@@ -128,7 +139,7 @@ void Reporter::writeJson(const BacktestResult& result, const std::string& path) 
 void Reporter::writeSummaryCsv(const BacktestResult& result, const std::string& path) const {
     auto summary = summarize(result);
     std::ofstream ofs(path);
-    ofs << "initial_capital,final_equity,total_return,realized_pnl,unrealized_pnl,max_drawdown,win_rate,trades,winning_trades,losing_trades\n";
+    ofs << "initial_capital,final_equity,total_return,realized_pnl,unrealized_pnl,max_drawdown,win_rate,trades,winning_trades,losing_trades,total_fees,total_slippage,orders_filled,orders_rejected\n";
     ofs << summary.initialCapital << ','
         << summary.finalEquity << ','
         << summary.totalReturn << ','
@@ -138,20 +149,27 @@ void Reporter::writeSummaryCsv(const BacktestResult& result, const std::string& 
         << summary.winRate << ','
         << summary.trades << ','
         << summary.winningTrades << ','
-        << summary.losingTrades << '\n';
+        << summary.losingTrades << ','
+        << summary.totalFees << ','
+        << summary.totalSlippage << ','
+        << summary.ordersFilled << ','
+        << summary.ordersRejected << '\n';
 }
 
 void Reporter::writeTradesCsv(const BacktestResult& result, const std::string& path) const {
     std::ofstream ofs(path);
-    ofs << "trade_id,order_id,side,price,qty,symbol,timestamp\n";
+    ofs << "trade_id,order_id,side,type,price,qty,symbol,timestamp,fee,slippage_bps\n";
     for (const auto& tr : result.trades) {
         ofs << tr.id << ','
             << tr.orderId << ','
             << (tr.side == Side::Buy ? "BUY" : "SELL") << ','
+            << (tr.type == OrderType::Market ? "MARKET" : "LIMIT") << ','
             << tr.price << ','
             << tr.qty << ','
             << tr.symbol << ','
-            << formatTimestamp(tr.timestamp) << '\n';
+            << formatTimestamp(tr.timestamp) << ','
+            << tr.fee << ','
+            << tr.slippageBps << '\n';
     }
 }
 

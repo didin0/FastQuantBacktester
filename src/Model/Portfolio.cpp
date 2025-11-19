@@ -25,6 +25,7 @@ void Portfolio::applyTrade(const Trade& trade) {
 
     // cash decreases on buys, increases on sells
     cash_ -= signedQty * trade.price;
+    cash_ -= trade.fee;
 
     marks_[sym] = trade.price;
 

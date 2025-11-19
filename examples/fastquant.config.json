@@ -1,16 +1,33 @@
 {
   "data": {
+    "source": "csv",
     "path": "sample_prices.csv",
     "has_header": true,
     "strict": false
   },
-  "strategy": {
-    "type": "moving_average",
-    "short_window": 5,
-    "long_window": 20
-  },
+  "strategies": [
+    {
+      "name": "sma_fast",
+      "type": "moving_average",
+      "short_window": 5,
+      "long_window": 20
+    },
+    {
+      "name": "breakout_20",
+      "type": "breakout",
+      "breakout_lookback": 20,
+      "breakout_buffer": 0.5,
+      "order_quantity": 50,
+      "allow_short": true
+    }
+  ],
   "engine": {
-    "initial_capital": 100000
+    "initial_capital": 100000,
+    "execution": {
+      "default_slippage_bps": 25,
+      "commission_per_share": 0.01,
+      "commission_bps": 5
+    }
   },
   "reporter": {
     "json": "../reports/latest/report.json",
