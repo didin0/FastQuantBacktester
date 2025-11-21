@@ -51,6 +51,19 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(nlohmann_json)
 target_link_libraries(data_loader PUBLIC nlohmann_json::nlohmann_json)
 
+# Fetch cpp-httplib
+FetchContent_Declare(
+  cpp-httplib
+  GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
+  GIT_TAG        master
+)
+FetchContent_MakeAvailable(cpp-httplib)
+FetchContent_GetProperties(cpp-httplib)
+if(NOT cpp-httplib_POPULATED)
+  FetchContent_Populate(cpp-httplib)
+endif()
+message(STATUS "cpp-httplib source: ${cpp-httplib_SOURCE_DIR}")
+
 
 # Engine library (Strategy + BacktestEngine)
 add_library(engine
@@ -80,6 +93,19 @@ add_executable(fastquant_cli
 )
 target_include_directories(fastquant_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(fastquant_cli PRIVATE app_runner)
+
+add_executable(fastquant_server src/Server/main.cpp)
+target_include_directories(fastquant_server PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${cpp-httplib_SOURCE_DIR}
+)
+target_link_libraries(fastquant_server PRIVATE 
+    data_loader 
+    engine 
+    reporter 
+    app_runner 
+    nlohmann_json::nlohmann_json
+)
 
 add_executable(test_csv
   tests/test_csv_loader.cpp

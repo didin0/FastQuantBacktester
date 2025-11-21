@@ -58,3 +58,10 @@ coverage/
 # Ignore build artifacts from common tools
 /debug/
 /release/
+
+# Reports
+reports/
+
+# Build logs
+build_log.txt
+build_out.txt

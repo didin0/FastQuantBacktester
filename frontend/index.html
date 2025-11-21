@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FastQuantBacktester</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="card">
+    <h1>FastQuantBacktester</h1>
+    <form id="configForm">
+      <label>
+        Data Source
+        <select id="sourceType">
+          <option value="csv">CSV File</option>
+          <option value="api">Binance API</option>
+        </select>
+      </label>
+
+      <div id="csvInputs">
+        <label>
+          CSV file path
+          <div style="display: flex; gap: 8px;">
+            <input id="csvPath" type="text" placeholder="/data/market.csv" style="flex: 1;" />
+            <select id="exampleSelect" style="width: 120px;">
+              <option value="">Examples...</option>
+            </select>
+          </div>
+        </label>
+      </div>
+
+      <div id="apiInputs" style="display: none;">
+        <label>
+          Symbol
+          <div style="display: flex; gap: 8px;">
+            <input id="apiSymbol" type="text" placeholder="BTCUSDT" style="flex: 1;" />
+            <select id="presetSymbol" style="width: 120px;">
+              <option value="">Presets...</option>
+              <option value="BTCUSDT">BTC/USDT</option>
+              <option value="ETHUSDT">ETH/USDT</option>
+              <option value="SOLUSDT">SOL/USDT</option>
+              <option value="BNBUSDT">BNB/USDT</option>
+            </select>
+          </div>
+        </label>
+        <label>
+          Interval
+          <select id="apiInterval">
+            <option value="1m">1m</option>
+            <option value="1h" selected>1h</option>
+            <option value="1d">1d</option>
+          </select>
+        </label>
+      </div>
+
+      <label>
+        Strategy
+        <select id="strategyType">
+          <option value="MA">Moving Average</option>
+          <option value="Breakout">Breakout</option>
+        </select>
+      </label>
+
+      <div id="params-ma">
+        <label>
+          SMA period
+          <input id="smaPeriod" type="number" min="1" value="20" required />
+        </label>
+      </div>
+
+      <div id="params-breakout" style="display: none;">
+        <label>
+          Lookback Period
+          <input id="breakoutLookback" type="number" min="1" value="20" />
+        </label>
+        <label>
+          Threshold
+          <input id="breakoutThreshold" type="number" step="0.01" value="0.0" />
+        </label>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="loadBtn">Load Data</button>
+        <button type="button" id="runBtn">Run Backtest</button>
+      </div>
+    </form>
+
+    <section>
+      <h2>Dataset</h2>
+      <div id="dataInfo" class="info">No data loaded.</div>
+    </section>
+
+    <section>
+      <h2>Backtest</h2>
+      <div id="resultInfo" class="info">No backtest run yet.</div>
+      <canvas id="equityChart" width="400" height="200" style="margin-top: 20px; display: none;"></canvas>
+      
+      <div id="tradesSection" style="display: none; margin-top: 20px;">
+        <h3>Recent Trades</h3>
+        <div style="overflow-x: auto;">
+          <table id="tradesTable" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+            <thead>
+              <tr style="text-align: left; border-bottom: 1px solid #444;">
+                <th style="padding: 8px;">Type</th>
+                <th style="padding: 8px;">Price</th>
+                <th style="padding: 8px;">Qty</th>
+                <th style="padding: 8px;">Date</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
