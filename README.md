@@ -74,15 +74,12 @@ chmod +x run.sh- `--no-summary` – suppress stdout summary (useful when only ar
 
 ./run.sh- `--version`, `-h/--help` – discover metadata or usage.
 
-``````
-
-
-
+``
 Once the server starts, open your browser and navigate to:`examples/fastquant.config.json` now demonstrates running both a CSV data source and a live-style API source:
 
 👉 **http://localhost:8080**
 
-```json
+``json
 
 ---{
 
@@ -223,4 +220,5 @@ When you run `fastquant_cli`:
 3. The reporter prints concise per-strategy summaries (optional) – now including fee/slippage totals – and drops JSON/CSV artifacts suffixed with the strategy name + index (e.g., `_breakout_20_2`). Relative paths are resolved against the config file location.
 
 That’s it—clone, build, tweak the config, and iterate on new strategies or reporters as needed.
+
 
